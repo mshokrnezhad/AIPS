@@ -3,6 +3,7 @@ version: '3.8'
 services:
   aips:
     build: .
+    image: aips:latest
     container_name: aips-monitor
     volumes:
       # Mount your local data folder to /data in container

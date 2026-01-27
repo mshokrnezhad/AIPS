@@ -30,7 +30,7 @@ echo "Building Docker image..."
 echo ""
 
 # Build the image
-docker-compose build
+docker compose build
 
 if [ $? -eq 0 ]; then
     echo ""

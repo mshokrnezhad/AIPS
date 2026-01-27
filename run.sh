@@ -33,7 +33,7 @@ echo "Starting AIPS container..."
 echo ""
 
 # Run the container
-docker-compose up
+docker compose up
 
 echo ""
 echo "✅ Done!"

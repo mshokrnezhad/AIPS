@@ -73,12 +73,43 @@ Create `urls.json`:
 
 ### 3. Run with Docker
 
+**Option A: Run from project folder**
 ```bash
 # Build the image
 ./build.sh
 
 # Run the container
 ./run.sh
+```
+
+**Option B: Run from any folder**
+```bash
+# 1. Build once from AIPS project folder
+cd /path/to/AIPS
+./build.sh
+
+# 2. Copy the runner script to your data folder
+cp aips-run.sh /path/to/your/data/folder/
+
+# 3. Run from your data folder (with your urls.json and venue folders)
+cd /path/to/your/data/folder
+./aips-run.sh
+```
+
+**Option C: Install as global command**
+```bash
+# 1. Build and install
+cd /path/to/AIPS
+./build.sh
+./install.sh
+
+# 2. Add to PATH (if needed)
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+
+# 3. Use from anywhere
+cd /any/folder/with/urls.json
+aips
 ```
 
 ### 4. Run Locally
@@ -106,7 +137,12 @@ AIPS/
 ├── .env                    # API keys
 ├── urls.json              # URLs to monitor
 ├── build.sh               # Build Docker image
-├── run.sh                 # Run container
+├── run.sh                 # Run container (from project folder)
+├── aips-run.sh            # Run container (from any folder)
+├── install.sh             # Install as global command
+├── uninstall.sh           # Uninstall global command
+├── schedule.sh            # Schedule AIPS with cron
+├── unschedule.sh          # Remove scheduled jobs
 ├── Dockerfile             # Docker image definition
 ├── docker-compose.yml     # Docker compose config
 ├── requirements.txt       # Python dependencies
@@ -153,6 +189,30 @@ Email includes structured updates:
 ./build.sh    # Build the image (once)
 ./run.sh      # Run the container (anytime)
 ```
+
+### Running from Different Folders
+
+Build the image once, then use it from any folder with its own `urls.json`:
+
+```bash
+# 1. Build image (one-time, from AIPS folder)
+cd /home/user/AIPS
+./build.sh
+
+# 2. Copy runner to your data folder
+cp aips-run.sh /home/user/project-monitoring/
+cd /home/user/project-monitoring/
+
+# 3. Create your urls.json here
+# 4. Run AIPS - it will create venue folders here
+./aips-run.sh
+```
+
+**Use cases:**
+- Monitor different URL sets per project
+- Separate monitoring for different teams/clients
+- Keep project data organized in their own folders
+- One Docker image, multiple data locations
 
 ### When to Rebuild
 
@@ -216,18 +276,47 @@ docker-compose run --rm aips /bin/bash
 
 ## Scheduling
 
-Run AIPS automatically at scheduled times.
+Run AIPS automatically at scheduled times using cron.
 
-**Linux:**
+### Easy Scheduling (Recommended)
+
+```bash
+# Schedule AIPS for a specific folder
+cd /path/to/AIPS
+./schedule.sh /home/user/Desktop/AIPS 9 0    # Daily at 9:00 AM
+./schedule.sh /home/user/project-a 14 30     # Daily at 2:30 PM
+```
+
+**Unschedule:**
+```bash
+./unschedule.sh /home/user/Desktop/AIPS      # Remove specific folder
+./unschedule.sh                               # Remove all AIPS jobs
+```
+
+**Check logs:**
+```bash
+tail -f /home/user/Desktop/AIPS/aips.log
+```
+
+### Manual Cron Setup
+
 ```bash
 crontab -e
 # Add this line (runs daily at 9 AM):
-0 9 * * * cd /path/to/AIPS && ./run.sh >> /var/log/aips.log 2>&1
+0 9 * * * cd /home/user/Desktop/AIPS && aips >> /home/user/Desktop/AIPS/aips.log 2>&1
 ```
 
-**Check cron logs:**
+**Common schedules:**
+```
+0 9 * * *     # 9:00 AM daily
+0 */6 * * *   # Every 6 hours
+30 8 * * 1    # 8:30 AM every Monday
+0 0 * * *     # Midnight daily
+```
+
+**View scheduled jobs:**
 ```bash
-tail -f /var/log/aips.log
+crontab -l
 ```
 
 ## Configuration
