@@ -1,7 +1,7 @@
 # AIPS - AI-Powered Information Processing System
 
 <div align="center">
-  <img src="workflow.png" alt="drawing" width="400"/>
+  <img src="workflow.png" alt="drawing" width="600"/>
 </div>
 
 Automated website monitoring with LLM-based content extraction and email notifications.
