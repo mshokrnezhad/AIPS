@@ -28,6 +28,7 @@ Automated website monitoring with LLM-based content extraction and email notific
   - [Change LLM Model](#change-llm-model)
   - [Adjust Retry Logic](#adjust-retry-logic)
   - [Minimum Size Validation](#minimum-size-validation)
+- [Changelog](#changelog)
 - [Requirements](#requirements)
 - [License](#license)
 
@@ -45,7 +46,9 @@ Automated website monitoring with LLM-based content extraction and email notific
 
 Create `.env` file:
 ```bash
-OPENROUTER_API_KEY=your_key_here
+CLOUDFLARE_ACCOUNT_ID=your_cloudflare_account_id
+CLOUDFLARE_API_TOKEN=your_cloudflare_api_token
+OPENROUTER_API_KEY=your_openrouter_key
 SMTP_SERVER=smtp.gmail.com
 SMTP_PORT=587
 SENDER_EMAIL=your_email@gmail.com
@@ -53,7 +56,9 @@ SENDER_PASSWORD=your_app_password
 RECIPIENT_EMAIL=recipient@example.com
 ```
 
-**Note:** For Gmail, use an [App Password](https://myaccount.google.com/apppasswords) instead of your regular password.
+**Notes:**
+- Get your Cloudflare Account ID and API token from [Cloudflare Dashboard](https://dash.cloudflare.com/). The token needs the **Browser Rendering** permission.
+- For Gmail, use an [App Password](https://myaccount.google.com/apppasswords) instead of your regular password.
 
 ### 2. Configure URLs
 
@@ -124,49 +129,49 @@ python main.py
 
 ## How It Works
 
-1. **Fetch** - Downloads content and links from each URL using DeepCrawl API
-2. **Compare** - Detects changes from previous fetch using diff analysis
-3. **Extract** - LLM identifies new articles/updates with titles and links
-4. **Email** - Sends combined notification with all updates
-5. **Cleanup** - Prepares for next monitoring cycle (renames new→old)
+1. **Fetch** — Downloads each URL as a Markdown snapshot using the [Cloudflare Browser Rendering API](https://developers.cloudflare.com/browser-rendering/)
+2. **Save** — Writes the snapshot to `results_old.md` (first run) or `results_new.md` (subsequent runs)
+3. **Compare** — Diffs old vs new snapshot; saves only the added lines to `differences.md`
+4. **Extract** — LLM reads `differences.md` and identifies new articles/announcements, returning structured `(title, link)` pairs — noise, UI chrome, and self-referential links are discarded
+5. **Email** — Sends a single combined notification with all updates across all monitored sources
+6. **Cleanup** — Renames `results_new.md` → `results_old.md` to prepare for the next cycle
 
 ## File Structure
 
 ```
 AIPS/
-├── .env                    # API keys
-├── urls.json              # URLs to monitor
-├── build.sh               # Build Docker image
-├── run.sh                 # Run container (from project folder)
-├── aips-run.sh            # Run container (from any folder)
-├── install.sh             # Install as global command
-├── uninstall.sh           # Uninstall global command
-├── schedule.sh            # Schedule AIPS with cron
-├── unschedule.sh          # Remove scheduled jobs
-├── Dockerfile             # Docker image definition
-├── docker-compose.yml     # Docker compose config
-├── requirements.txt       # Python dependencies
-├── main.py                # Main application
-├── api_fetcher.py         # API calls with retry logic
-├── llm_extractor.py       # LLM extraction
-├── email_sender.py        # Email notifications
-├── compare_results.py     # Diff generation
-├── data_saver.py          # Saves results
-├── cleanup.py             # State management
-└── venue_folder/          # Auto-created per URL
-    ├── read_results_old.txt      # Text content baseline
-    ├── links_results_old.txt     # Links data baseline
-    ├── read_differences.txt      # New text content
-    └── links_differences.txt     # New links
+├── .env                    # API keys and email config
+├── urls.json               # URLs to monitor
+├── build.sh                # Build Docker image
+├── run.sh                  # Run container (from project folder)
+├── aips-run.sh             # Run container (from any folder)
+├── install.sh              # Install as global command
+├── uninstall.sh            # Uninstall global command
+├── schedule.sh             # Schedule AIPS with cron
+├── unschedule.sh           # Remove scheduled jobs
+├── Dockerfile              # Docker image definition
+├── docker-compose.yml      # Docker compose config
+├── requirements.txt        # Python dependencies
+├── main.py                 # Main application
+├── api_fetcher.py          # Cloudflare fetch with retry logic
+├── llm_extractor.py        # LLM extraction via OpenRouter
+├── email_sender.py         # Email notifications
+├── compare_results.py      # Diff generation
+├── data_saver.py           # Saves Markdown snapshots
+├── cleanup.py              # State management
+└── venue_folder/           # Auto-created per URL
+    ├── results_old.md      # Previous Markdown snapshot (baseline)
+    ├── results_new.md      # Current Markdown snapshot (during run)
+    ├── differences.md      # Added lines since last run (kept for history)
+    └── extracted_updates.json  # LLM output (removed after run)
 ```
 
 ## Output Format
 
 Each monitored URL gets a folder with:
-- **read_results_old.txt** - Text content baseline
-- **links_results_old.txt** - Links data baseline (JSON)
-- **read_differences.txt** - New text content (additions only)
-- **links_differences.txt** - New links (additions only)
+- **results_old.md** — Previous Markdown snapshot (baseline for next comparison)
+- **results_new.md** — Current snapshot (present only during a run)
+- **differences.md** — Lines added since the last run (kept as history)
 
 Email includes structured updates:
 ```
@@ -325,7 +330,7 @@ crontab -l
 
 Edit `llm_extractor.py`:
 ```python
-model="openai/gpt-5-nano"  # Change to your preferred model
+model="openai/gpt-4o-mini"  # Change to your preferred model
 ```
 
 Available models at: https://openrouter.ai/models
@@ -334,8 +339,9 @@ Available models at: https://openrouter.ai/models
 
 Edit `api_fetcher.py`:
 ```python
-retries=10  # Number of fetch attempts (default: 10)
-backoff = random.uniform(2, 10)  # Retry delay range in seconds
+retries=10                        # Number of fetch attempts (default: 10)
+backoff = random.uniform(2, 10)   # Normal retry delay range in seconds
+backoff = random.uniform(5, 15)   # Rate-limit (429) retry delay range in seconds
 ```
 
 ### Minimum Size Validation
@@ -347,13 +353,31 @@ min_ratio=0.5  # Accept if new data ≥ 50% of old size
 
 This prevents accepting incomplete fetches that are significantly smaller than previous data.
 
+## Changelog
+
+### v2.0 — Cloudflare Browser Rendering
+- **Replaced DeepCrawl API** with [Cloudflare Browser Rendering API](https://developers.cloudflare.com/browser-rendering/) for fetching pages
+- Each URL is now fetched as a **single Markdown snapshot** instead of separate content and links files
+- Per-source folder layout simplified: `results_old.md` / `results_new.md` / `differences.md` (replacing the four `.txt` files from v1.0)
+- LLM extractor updated to work from a single diff rather than two separate diffs
+- LLM system prompt significantly improved: explicit noise blocklist (cookie banners, dialogs, nav menus, etc.), semantic test ("would a subscriber want to be notified?"), and self-referential link filtering using the monitored URL
+- Rate-limit handling improved: 429 responses back off 5–15 s separately from other errors; 2 s gap added between URLs
+- `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` added to `.env` / `env.template`
+
+### v1.0 — DeepCrawl (baseline)
+- Initial release using DeepCrawl API (`/read` and `/links` endpoints)
+- Separate `read_results_old.txt`, `links_results_old.txt`, `read_differences.txt`, `links_differences.txt` per source
+- LLM extracted titles from read diff and matched links from links diff
+
+---
+
 ## Requirements
 
 - Python 3.11+
 - Docker (for containerized deployment)
-- OpenRouter API key ([Get here](https://openrouter.ai/keys))
+- [Cloudflare account](https://dash.cloudflare.com/) with Browser Rendering API access
+- [OpenRouter API key](https://openrouter.ai/keys)
 - Email account with SMTP access
-- DeepCrawl API key (already included in code)
 
 **Python packages:**
 - requests
@@ -375,5 +399,3 @@ Thank you for checking out AIPS! We hope this AI-powered information processing 
 - Share bug reports, feature requests, or open issues
 
 We look forward to seeing your ideas and contributions!
-
-
