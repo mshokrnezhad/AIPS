@@ -37,6 +37,7 @@ Automated website monitoring with LLM-based content extraction and email notific
 - 🔍 Monitors websites for new content
 - 📊 Compares changes using diff analysis
 - 🤖 Extracts structured updates with LLM (via OpenRouter)
+- 🔗 Verifies and corrects extracted links via Brave Search
 - 📧 Sends email notifications with titles and links
 - 🐳 Docker-ready for easy deployment
 
@@ -48,6 +49,7 @@ Create `.env` file:
 ```bash
 CLOUDFLARE_ACCOUNT_ID=your_cloudflare_account_id
 CLOUDFLARE_API_TOKEN=your_cloudflare_api_token
+BRAVE_API_KEY=your_brave_api_key
 OPENROUTER_API_KEY=your_openrouter_key
 SMTP_SERVER=smtp.gmail.com
 SMTP_PORT=587
@@ -58,6 +60,7 @@ RECIPIENT_EMAIL=recipient@example.com
 
 **Notes:**
 - Get your Cloudflare Account ID and API token from [Cloudflare Dashboard](https://dash.cloudflare.com/). The token needs the **Browser Rendering** permission.
+- Get a free Brave Search API key from [api.search.brave.com](https://api.search.brave.com/).
 - For Gmail, use an [App Password](https://myaccount.google.com/apppasswords) instead of your regular password.
 
 ### 2. Configure URLs
@@ -133,8 +136,9 @@ python main.py
 2. **Save** — Writes the snapshot to `results_old.md` (first run) or `results_new.md` (subsequent runs)
 3. **Compare** — Diffs old vs new snapshot; saves only the added lines to `differences.md`
 4. **Extract** — LLM reads `differences.md` and identifies new articles/announcements, returning structured `(title, link)` pairs — noise, UI chrome, and self-referential links are discarded
-5. **Email** — Sends a single combined notification with all updates across all monitored sources
-6. **Cleanup** — Renames `results_new.md` → `results_old.md` to prepare for the next cycle
+5. **Verify** — Each extracted link is searched on Brave; if a same-domain result is found it replaces the original (fixes malformed/duplicated URLs from the source page)
+6. **Email** — Sends a single combined notification with all updates across all monitored sources
+7. **Cleanup** — Renames `results_new.md` → `results_old.md` to prepare for the next cycle
 
 ## File Structure
 
@@ -155,6 +159,7 @@ AIPS/
 ├── main.py                 # Main application
 ├── api_fetcher.py          # Cloudflare fetch with retry logic
 ├── llm_extractor.py        # LLM extraction via OpenRouter
+├── link_verifier.py        # Link verification via Brave Search
 ├── email_sender.py         # Email notifications
 ├── compare_results.py      # Diff generation
 ├── data_saver.py           # Saves Markdown snapshots
@@ -355,6 +360,10 @@ This prevents accepting incomplete fetches that are significantly smaller than p
 
 ## Changelog
 
+### v2.2 — Brave Link Verification
+- **Link verification agent** added (`link_verifier.py`): after LLM extraction, each link is searched on [Brave Search API](https://api.search.brave.com/); the first same-domain result replaces the original, fixing malformed or duplicated URLs produced by the source page
+- `BRAVE_API_KEY` added to `.env` / `env.template`
+
 ### v2.0 — Cloudflare Browser Rendering
 - **Replaced DeepCrawl API** with [Cloudflare Browser Rendering API](https://developers.cloudflare.com/browser-rendering/) for fetching pages
 - Each URL is now fetched as a **single Markdown snapshot** instead of separate content and links files
@@ -376,6 +385,7 @@ This prevents accepting incomplete fetches that are significantly smaller than p
 - Python 3.11+
 - Docker (for containerized deployment)
 - [Cloudflare account](https://dash.cloudflare.com/) with Browser Rendering API access
+- [Brave Search API key](https://api.search.brave.com/) (free tier: 2,000 requests/month)
 - [OpenRouter API key](https://openrouter.ai/keys)
 - Email account with SMTP access
 

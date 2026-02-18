@@ -8,6 +8,7 @@ from api_fetcher import fetch_markdown
 from data_saver import save_results, sanitize_folder_name
 from compare_results import compare_files
 from llm_extractor import process_folder_updates
+from link_verifier import verify_links
 from email_sender import send_combined_updates
 from cleanup import cleanup_all_folders
 
@@ -55,6 +56,7 @@ def process_url(name, url):
     # Fetch markdown with size validation and retry
     max_attempts = 2
     md_data = ""
+    time.sleep(5)  # Avoid hitting Cloudflare rate limits
     for attempt in range(max_attempts):
         md_data, status = fetch_markdown(url)
 
@@ -83,6 +85,8 @@ def process_url(name, url):
             updates_result = process_folder_updates(folder_name, source_url=url)
             if updates_result and updates_result.updates:
                 print(f"✓ Extracted {len(updates_result.updates)} structured updates")
+                print(f"✓ Verifying links...")
+                updates_result = verify_links(updates_result)
                 updates = updates_result.model_dump()["updates"]
         else:
             print("ℹ Skipping LLM extraction (OPENROUTER_API_KEY not set)")
@@ -111,7 +115,6 @@ def main():
             all_updates[name] = updates
 
         print()
-        time.sleep(2)  # Avoid hitting Cloudflare rate limits
 
     if all_updates:
         send_combined_updates(all_updates)

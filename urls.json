@@ -1,7 +1,7 @@
 {
     "1": {
-        "name": "Airbnb Tech Blog",
-        "url": "https://airbnb.tech"
+        "name": "IEEE NetMag",
+        "url": "https://www.comsoc.org/publications/magazines/ieee-network/cfp"
     },
     "2": {
         "name": "Google Research Blog",
@@ -88,8 +88,8 @@
         "url": "https://www.comsoc.org/publications/journals/ieee-jsac/cfp"
     },
     "34": {
-        "name": "IEEE NetMag",
-        "url": "https://www.comsoc.org/publications/magazines/ieee-network/cfp"
+        "name": "Airbnb Tech Blog",
+        "url": "https://airbnb.tech"
     },
     "35": {
         "name": "IEEE TNSE",
