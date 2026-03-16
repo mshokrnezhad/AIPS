@@ -20,6 +20,7 @@ COPY cleanup.py .
 COPY compare_results.py .
 COPY data_saver.py .
 COPY email_sender.py .
+COPY link_verifier.py .
 COPY llm_extractor.py .
 COPY main.py .
 
@@ -34,4 +35,4 @@ ENV PYTHONUNBUFFERED=1
 
 # Run the application from /data directory where urls.json and venue folders are
 WORKDIR /data
-CMD ["python", "/app/main.py"]
+CMD ["python3", "/app/main.py"]

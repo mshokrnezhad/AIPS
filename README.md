@@ -46,6 +46,7 @@ Automated website monitoring with LLM-based content extraction and email notific
 ### 1. Setup Environment
 
 Create `.env` file:
+
 ```bash
 CLOUDFLARE_ACCOUNT_ID=your_cloudflare_account_id
 CLOUDFLARE_API_TOKEN=your_cloudflare_api_token
@@ -59,6 +60,7 @@ RECIPIENT_EMAIL=recipient@example.com
 ```
 
 **Notes:**
+
 - Get your Cloudflare Account ID and API token from [Cloudflare Dashboard](https://dash.cloudflare.com/). The token needs the **Browser Rendering** permission.
 - Get a free Brave Search API key from [api.search.brave.com](https://api.search.brave.com/).
 - For Gmail, use an [App Password](https://myaccount.google.com/apppasswords) instead of your regular password.
@@ -66,22 +68,24 @@ RECIPIENT_EMAIL=recipient@example.com
 ### 2. Configure URLs
 
 Create `urls.json`:
+
 ```json
 {
-    "1": {
-        "name": "IEEE JSAC",
-        "url": "https://www.comsoc.org/publications/journals/ieee-jsac/cfp"
-    },
-    "2": {
-        "name": "Google Research Blog",
-        "url": "https://research.google/blog/"
-    }
+  "1": {
+    "name": "IEEE JSAC",
+    "url": "https://www.comsoc.org/publications/journals/ieee-jsac/cfp"
+  },
+  "2": {
+    "name": "Google Research Blog",
+    "url": "https://research.google/blog/"
+  }
 }
 ```
 
 ### 3. Run with Docker
 
 **Option A: Run from project folder**
+
 ```bash
 # Build the image
 ./build.sh
@@ -91,6 +95,7 @@ Create `urls.json`:
 ```
 
 **Option B: Run from any folder**
+
 ```bash
 # 1. Build once from AIPS project folder
 cd /path/to/AIPS
@@ -105,6 +110,7 @@ cd /path/to/your/data/folder
 ```
 
 **Option C: Install as global command**
+
 ```bash
 # 1. Build and install
 cd /path/to/AIPS
@@ -174,11 +180,13 @@ AIPS/
 ## Output Format
 
 Each monitored URL gets a folder with:
+
 - **results_old.md** — Previous Markdown snapshot (baseline for next comparison)
 - **results_new.md** — Current snapshot (present only during a run)
 - **differences.md** — Lines added since the last run (kept as history)
 
 Email includes structured updates:
+
 ```
 📰 2 New Updates from 2 Sources
 
@@ -219,6 +227,7 @@ cd /home/user/project-monitoring/
 ```
 
 **Use cases:**
+
 - Monitor different URL sets per project
 - Separate monitoring for different teams/clients
 - Keep project data organized in their own folders
@@ -226,12 +235,12 @@ cd /home/user/project-monitoring/
 
 ### When to Rebuild
 
-| Changed File | Need Rebuild? | Command |
-|--------------|---------------|---------|
-| `.env` | ✅ Yes | `./build.sh` |
-| `urls.json` | ❌ No | `./run.sh` |
-| `*.py` files | ✅ Yes | `./build.sh` |
-| Venue folders | ❌ No | `./run.sh` |
+| Changed File  | Need Rebuild? | Command      |
+| ------------- | ------------- | ------------ |
+| `.env`        | ✅ Yes        | `./build.sh` |
+| `urls.json`   | ❌ No         | `./run.sh`   |
+| `*.py` files  | ✅ Yes        | `./build.sh` |
+| Venue folders | ❌ No         | `./run.sh`   |
 
 ### Docker Workflow
 
@@ -242,6 +251,7 @@ cd /home/user/project-monitoring/
 5. Results accessible on your host machine
 
 **Benefits:**
+
 - `.env` file secured inside Docker image
 - Data persists on your machine
 - Clean isolated environment
@@ -249,37 +259,42 @@ cd /home/user/project-monitoring/
 
 ### Common Docker Issues
 
-| Issue | Solution |
-|-------|----------|
-| "Docker image not found" | Run `./build.sh` first |
-| "urls.json not found" | Ensure it's in current directory |
-| "Permission denied" | Run `chmod +x build.sh run.sh` |
-| Empty venue folders | Check if dependencies installed: `./build.sh` |
+| Issue                    | Solution                                      |
+| ------------------------ | --------------------------------------------- |
+| "Docker image not found" | Run `./build.sh` first                        |
+| "urls.json not found"    | Ensure it's in current directory              |
+| "Permission denied"      | Run `chmod +x build.sh run.sh`                |
+| Empty venue folders      | Check if dependencies installed: `./build.sh` |
 
 ### Advanced Docker Commands
 
 **View logs:**
+
 ```bash
 docker-compose logs -f
 ```
 
 **Stop container:**
+
 ```bash
 docker-compose down
 ```
 
 **Force rebuild (no cache):**
+
 ```bash
 docker-compose build --no-cache
 ```
 
 **Run in background:**
+
 ```bash
 # Edit run.sh and change:
 docker-compose up -d
 ```
 
 **Enter container for debugging:**
+
 ```bash
 docker-compose run --rm aips /bin/bash
 ```
@@ -298,12 +313,14 @@ cd /path/to/AIPS
 ```
 
 **Unschedule:**
+
 ```bash
 ./unschedule.sh /home/user/Desktop/AIPS      # Remove specific folder
 ./unschedule.sh                               # Remove all AIPS jobs
 ```
 
 **Check logs:**
+
 ```bash
 tail -f /home/user/Desktop/AIPS/aips.log
 ```
@@ -317,6 +334,7 @@ crontab -e
 ```
 
 **Common schedules:**
+
 ```
 0 9 * * *     # 9:00 AM daily
 0 */6 * * *   # Every 6 hours
@@ -325,6 +343,7 @@ crontab -e
 ```
 
 **View scheduled jobs:**
+
 ```bash
 crontab -l
 ```
@@ -334,6 +353,7 @@ crontab -l
 ### Change LLM Model
 
 Edit `llm_extractor.py`:
+
 ```python
 model="openai/gpt-4o-mini"  # Change to your preferred model
 ```
@@ -343,6 +363,7 @@ Available models at: https://openrouter.ai/models
 ### Adjust Retry Logic
 
 Edit `api_fetcher.py`:
+
 ```python
 retries=10                        # Number of fetch attempts (default: 10)
 backoff = random.uniform(2, 10)   # Normal retry delay range in seconds
@@ -352,6 +373,7 @@ backoff = random.uniform(5, 15)   # Rate-limit (429) retry delay range in second
 ### Minimum Size Validation
 
 Edit `main.py`:
+
 ```python
 min_ratio=0.5  # Accept if new data ≥ 50% of old size
 ```
@@ -361,10 +383,12 @@ This prevents accepting incomplete fetches that are significantly smaller than p
 ## Changelog
 
 ### v2.2 — Brave Link Verification
+
 - **Link verification agent** added (`link_verifier.py`): after LLM extraction, each link is searched on [Brave Search API](https://api.search.brave.com/); the first same-domain result replaces the original, fixing malformed or duplicated URLs produced by the source page
 - `BRAVE_API_KEY` added to `.env` / `env.template`
 
 ### v2.0 — Cloudflare Browser Rendering
+
 - **Replaced DeepCrawl API** with [Cloudflare Browser Rendering API](https://developers.cloudflare.com/browser-rendering/) for fetching pages
 - Each URL is now fetched as a **single Markdown snapshot** instead of separate content and links files
 - Per-source folder layout simplified: `results_old.md` / `results_new.md` / `differences.md` (replacing the four `.txt` files from v1.0)
@@ -374,6 +398,7 @@ This prevents accepting incomplete fetches that are significantly smaller than p
 - `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` added to `.env` / `env.template`
 
 ### v1.0 — DeepCrawl (baseline)
+
 - Initial release using DeepCrawl API (`/read` and `/links` endpoints)
 - Separate `read_results_old.txt`, `links_results_old.txt`, `read_differences.txt`, `links_differences.txt` per source
 - LLM extracted titles from read diff and matched links from links diff
@@ -390,6 +415,7 @@ This prevents accepting incomplete fetches that are significantly smaller than p
 - Email account with SMTP access
 
 **Python packages:**
+
 - requests
 - pydantic
 - openai
@@ -402,6 +428,7 @@ This prevents accepting incomplete fetches that are significantly smaller than p
 Thank you for checking out AIPS! We hope this AI-powered information processing system makes automated website monitoring and content extraction easier for you. Feel free to fork the repository, try out your own improvements, and contribute. We welcome your feedback and collaboration—your suggestions and pull requests help make this project better for everyone.
 
 **How you can contribute:**
+
 - Add new website sources or improve URL handling
 - Suggest or improve LLM extraction prompts or models
 - Enhance email notification formatting or add delivery options
