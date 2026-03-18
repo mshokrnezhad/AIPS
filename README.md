@@ -330,8 +330,10 @@ tail -f /home/user/Desktop/AIPS/aips.log
 ```bash
 crontab -e
 # Add this line (runs daily at 9 AM):
-0 9 * * * cd /home/user/Desktop/AIPS && aips >> /home/user/Desktop/AIPS/aips.log 2>&1
+0 9 * * * cd /home/user/Desktop/AIPS && /home/user/.local/bin/aips >> /home/user/Desktop/AIPS/aips.log 2>&1
 ```
+
+> **Important:** Always use the **full path** to `aips` (e.g. `/home/user/.local/bin/aips`), not just `aips`. Cron runs with a minimal `PATH` that doesn't include `~/.local/bin`, so the bare command will fail with `aips: not found`.
 
 **Common schedules:**
 
@@ -346,6 +348,18 @@ crontab -e
 
 ```bash
 crontab -l
+```
+
+**Monitor the log live:**
+
+```bash
+tail -f /home/user/Desktop/AIPS/aips.log
+```
+
+**Check cron system log (see when jobs fired):**
+
+```bash
+grep CRON /var/log/syslog | tail -20
 ```
 
 ## Configuration
